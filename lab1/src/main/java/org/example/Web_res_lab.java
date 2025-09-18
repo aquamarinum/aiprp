@@ -3,12 +3,15 @@ package org.example;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.net.URI;
 import java.util.*;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+
+import java.awt.Desktop;
 
 public class Web_res_lab extends Frame implements ActionListener{
 
@@ -56,6 +59,11 @@ public class Web_res_lab extends Frame implements ActionListener{
                 int coincidenceCount = testUrl(file, keywords);
                 textArea.append("\n" + file + "  :" + coincidenceCount);
             }
+
+            if(files.size() > 0) {
+                System.out.println("c:/code/java/aiprp/lab1/files/"+files.get(0).getName());
+                // openInBrowser("c:/code/java/aiprp/lab1/files/"+files.get(0).getName());
+            }
         }
     }
 
@@ -85,6 +93,28 @@ public class Web_res_lab extends Frame implements ActionListener{
             return -1;
         }
         return results;
+    }
+
+    public void openInBrowser(String filePath) {
+
+        File file = new File(filePath);
+
+        if (Desktop.isDesktopSupported()) {
+            Desktop desktop = Desktop.getDesktop();
+            if (desktop.isSupported(Desktop.Action.BROWSE)) {
+                try {
+                    URI uri = file.toURI();
+                    desktop.browse(uri);
+                    System.out.println("File opened in browser successfully.");
+                } catch (IOException e) {
+                    System.err.println("Error opening file in browser: " + e.getMessage());
+                }
+            } else {
+                System.out.println("Browsing action not supported on this platform.");
+            }
+        } else {
+            System.out.println("Desktop API not supported on this platform.");
+        }
     }
 
     public static void main(String[] args) {
