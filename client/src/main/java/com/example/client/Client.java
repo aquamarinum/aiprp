@@ -21,14 +21,14 @@ public class Client {
     private Process musicProcess;
 
     public static void main(String[] args) {
-        EventQueue.invokeLater(() -> {
+
             try {
                 Client window = new Client();
                 window.frame.setVisible(true);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });
+
     }
 
     public Client() {
@@ -47,13 +47,11 @@ public class Client {
                 stopMusic();
             }
         });
-        
-        // Основная панель с полями ввода
+
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new GridLayout(2, 2, 10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
-        
-        // Метки и поля
+
         JLabel wordLabel = new JLabel("Слово:");
         wordField = new JTextField();
         
@@ -65,8 +63,7 @@ public class Client {
         mainPanel.add(wordField);
         mainPanel.add(translationLabel);
         mainPanel.add(translationField);
-        
-        // Панель с кнопками
+
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new FlowLayout());
         
@@ -88,8 +85,7 @@ public class Client {
         frame.add(buttonPanel, BorderLayout.SOUTH);
         
         frame.setLocationRelativeTo(null);
-        
-        // Обработчики событий
+
         translateButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 translateWord();
@@ -111,6 +107,7 @@ public class Client {
         presentationButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 openPresentation();
+                playMusic();
             }
         });
 
@@ -142,7 +139,6 @@ public class Client {
             return;
         }
 
-        // Запрашиваем перевод с сервера с флагом client=true
         try {
             String url = SERVER_URL + "/DictionaryServlet?client=true&txt=" + 
                         java.net.URLEncoder.encode(word, "UTF-8");
@@ -150,8 +146,7 @@ public class Client {
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
                 HttpGet request = new HttpGet(url);
                 HttpResponse response = httpClient.execute(request);
-                
-                // Получаем просто перевод (без HTML)
+
                 String translation = EntityUtils.toString(response.getEntity(), "UTF-8");
                 translationField.setText(translation);
             }

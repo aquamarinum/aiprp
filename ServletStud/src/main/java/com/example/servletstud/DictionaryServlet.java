@@ -3,6 +3,7 @@ package com.example.servletstud;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.*;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,8 +19,7 @@ public class DictionaryServlet extends HttpServlet {
     
     private void initializeDictionary() {
         dictionary = new HashMap<>();
-        
-        // Русско-английский словарь
+
         dictionary.put("привет", "hello");
         dictionary.put("мир", "world");
         dictionary.put("программа", "program");
@@ -30,8 +30,7 @@ public class DictionaryServlet extends HttpServlet {
         dictionary.put("вода", "water");
         dictionary.put("книга", "book");
         dictionary.put("стол", "table");
-        
-        // Англо-русский словарь
+
         dictionary.put("hello", "привет");
         dictionary.put("world", "мир");
         dictionary.put("program", "программа");
@@ -49,15 +48,36 @@ public class DictionaryServlet extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         
-        // Проверяем, запрашивается ли перевод для клиента
+
         String clientParam = request.getParameter("client");
         if ("true".equals(clientParam)) {
-            // Возвращаем только перевод для клиентского приложения
             processClientTranslation(request, response);
         } else {
-            // Возвращаем HTML страницу для браузера
             processHtmlTranslation(request, response);
         }
+    }
+    
+    private String getFromDataBase(String word) {
+        String res = "";
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3307/aiprp2", "root", "");
+            String sql = "SELECT eng FROM Translations WHERE rus= ?";
+            PreparedStatement statement = conn.prepareStatement(sql);
+            statement.setString(1, word);
+            
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                return resultSet.getString("eng");
+            }
+            conn.close();
+        } catch (Exception e) {
+            System.out.println("DATABASE ERROR");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
+        return res;
     }
 
     private void processClientTranslation(HttpServletRequest request, HttpServletResponse response)
@@ -67,8 +87,7 @@ public class DictionaryServlet extends HttpServlet {
         
         String word = request.getParameter("txt");
         String translation = translateWord(word);
-        
-        // Возвращаем просто перевод (без HTML)
+
         out.print(translation);
         out.close();
     }
@@ -105,7 +124,8 @@ public class DictionaryServlet extends HttpServlet {
         }
         
         String cleanWord = word.trim().toLowerCase();
-        String translation = dictionary.get(cleanWord);
+//        String translation = dictionary.get(cleanWord);
+        String translation = getFromDataBase(cleanWord);
         
         if (translation == null) {
             return "Перевод не найден";
