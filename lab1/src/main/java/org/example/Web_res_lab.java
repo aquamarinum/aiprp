@@ -17,7 +17,10 @@ public class Web_res_lab extends Frame implements ActionListener{
 
     Button exitButton = new Button("Exit");
     Button searchButton = new Button("Search");
+    Button clearButton = new Button("Clear");
+    Button startMusic = new Button("Music");
     TextArea textArea = new TextArea();
+    MusicPlayer player;
 
     public Web_res_lab() {
         super("My Window");
@@ -33,11 +36,21 @@ public class Web_res_lab extends Frame implements ActionListener{
         searchButton.addActionListener(this);
         add(searchButton);
 
+        clearButton.setBounds(220, 165, 100, 20);
+        clearButton.addActionListener(this);
+        add(clearButton);
+
+        startMusic.setBounds(340, 165, 100, 20);
+        startMusic.addActionListener(this);
+        add(startMusic);
+
         textArea.setBounds(20, 50, 300, 100);
         add(textArea);
 
         setLocationRelativeTo(null);
         setVisible(true);
+
+        player = new MusicPlayer();
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -61,9 +74,13 @@ public class Web_res_lab extends Frame implements ActionListener{
             }
 
             if(files.size() > 0) {
-                System.out.println("c:/code/java/aiprp/lab1/files/"+files.get(0).getName());
-                // openInBrowser("c:/code/java/aiprp/lab1/files/"+files.get(0).getName());
+//                System.out.println("c:/code/java/aiprp/lab1/files/"+files.get(0).getName());
+                openInBrowser("c:/code/java/aiprp/lab1/files/"+files.get(0).getName());
             }
+        } else if (ae.getSource() == clearButton) {
+            textArea.setText("");
+        } else if (ae.getSource() == startMusic) {
+            player.showPlayer();
         }
     }
 
@@ -121,4 +138,3 @@ public class Web_res_lab extends Frame implements ActionListener{
         new Web_res_lab();
     }
 }
-
