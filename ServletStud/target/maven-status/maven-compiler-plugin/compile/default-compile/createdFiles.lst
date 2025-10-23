@@ -1,0 +1,4 @@
+com\example\servletstud\ExcelServlet.class
+com\example\servletstud\resources\JakartaEE10Resource.class
+com\example\servletstud\DictionaryServlet.class
+com\example\servletstud\JakartaRestConfiguration.class
