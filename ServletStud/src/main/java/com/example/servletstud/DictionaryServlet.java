@@ -3,148 +3,114 @@ package com.example.servletstud;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.*;
-import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DictionaryServlet extends HttpServlet {
     
-    private static final String URL = "jdbc:mysql://localhost:3307/dictionary_db?useUnicode=true&characterEncoding=UTF-8";
-    private static final String USER = "root";
-    private static final String PASSWORD = "";
+    private Map<String, String> dictionary;
+    
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        initializeDictionary();
+    }
+    
+    private void initializeDictionary() {
+        dictionary = new HashMap<>();
+        
+        // Русско-английский словарь
+        dictionary.put("привет", "hello");
+        dictionary.put("мир", "world");
+        dictionary.put("программа", "program");
+        dictionary.put("кот", "cat");
+        dictionary.put("собака", "dog");
+        dictionary.put("дом", "house");
+        dictionary.put("солнце", "sun");
+        dictionary.put("вода", "water");
+        dictionary.put("книга", "book");
+        dictionary.put("стол", "table");
+        
+        // Англо-русский словарь
+        dictionary.put("hello", "привет");
+        dictionary.put("world", "мир");
+        dictionary.put("program", "программа");
+        dictionary.put("cat", "кот");
+        dictionary.put("dog", "собака");
+        dictionary.put("house", "дом");
+        dictionary.put("sun", "солнце");
+        dictionary.put("water", "вода");
+        dictionary.put("book", "книга");
+        dictionary.put("table", "стол");
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
-        response.setContentType("text/html;charset=UTF-8");
         
+        // Проверяем, запрашивается ли перевод для клиента
+        String clientParam = request.getParameter("client");
+        if ("true".equals(clientParam)) {
+            // Возвращаем только перевод для клиентского приложения
+            processClientTranslation(request, response);
+        } else {
+            // Возвращаем HTML страницу для браузера
+            processHtmlTranslation(request, response);
+        }
+    }
+
+    private void processClientTranslation(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.setContentType("text/plain;charset=UTF-8");
+        PrintWriter out = response.getWriter();
+        
+        String word = request.getParameter("txt");
+        String translation = translateWord(word);
+        
+        // Возвращаем просто перевод (без HTML)
+        out.print(translation);
+        out.close();
+    }
+
+    private void processHtmlTranslation(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
         
         String rus_word = request.getParameter("txt");
-        String translation = "";
+        String translation = translateWord(rus_word);
 
-        if (rus_word != null && !rus_word.trim().isEmpty()) {
-            translation = translateWord(rus_word.trim());
-        }
-
-        try {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet DictionaryServlet</title>");
-            out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
-            out.println("</head>");
-            out.println("<body bgcolor='#aaccff'>");
-            out.println("<form>");
-            out.println("<h2> Результат перевода:</h2><br><br>");
-            out.println("<Font color='blue' size='6'>Русское слово: " + rus_word + "</Font><br>");
-            out.println("<Font color='blue' size='6'>Перевод: " + translation + "</Font><br><br>");
-            out.println("<a href='dictionary.html'>Вернуться к словарю</a>");
-            out.println("</form>");
-            out.println("</body>");
-            out.println("</html>");
-        } finally {
-            out.close();
-        }
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
-        response.setContentType("text/html;charset=UTF-8");
-        
-        PrintWriter out = response.getWriter();
-        
-        String russianWord = request.getParameter("russianWord");
-        String englishWord = request.getParameter("englishWord");
-        String message = "";
-
-        if (russianWord != null && englishWord != null && 
-            !russianWord.trim().isEmpty() && !englishWord.trim().isEmpty()) {
-            
-            if (addWordToDictionary(russianWord.trim(), englishWord.trim())) {
-                message = "Слово успешно добавлено в словарь!";
-            } else {
-                message = "Ошибка при добавлении слова в словарь";
-            }
-        } else {
-            message = "Оба поля должны быть заполнены!";
-        }
-
-        try {
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet DictionaryServlet</title>");
-            out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
-            out.println("</head>");
-            out.println("<body bgcolor='#aaccff'>");
-            out.println("<form>");
-            out.println("<h2> " + message + "</h2><br><br>");
-            out.println("<a href='dictionary.html'>Вернуться к словарю</a>");
-            out.println("</form>");
-            out.println("</body>");
-            out.println("</html>");
-        } finally {
-            out.close();
-        }
+        out.println("<!DOCTYPE html>");
+        out.println("<html>");
+        out.println("<head>");
+        out.println("<title>Servlet DictionaryServlet</title>");
+        out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">");
+        out.println("</head>");
+        out.println("<body bgcolor='#aaccff'>");
+        out.println("<form>");
+        out.println("<h2> Результат перевода:</h2><br><br>");
+        out.println("<Font color='blue' size='6'>Русское слово: " + rus_word + "</Font><br>");
+        out.println("<Font color='blue' size='6'>Перевод: " + translation + "</Font><br><br>");
+        out.println("<a href='dictionary.html'>Вернуться к словарю</a>");
+        out.println("</form>");
+        out.println("</body>");
+        out.println("</html>");
+        out.close();
     }
 
     private String translateWord(String word) {
-        String translation = "Перевод не найден";
-        
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            return "Ошибка: драйвер БД не найден";
+        if (word == null || word.trim().isEmpty()) {
+            return "Введите слово";
         }
         
-        String sql = "SELECT english_word FROM translations WHERE russian_word = ?";
+        String cleanWord = word.trim().toLowerCase();
+        String translation = dictionary.get(cleanWord);
         
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setString(1, word);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                translation = rs.getString("english_word");
-            } else {
-                sql = "SELECT russian_word FROM translations WHERE english_word = ?";
-                try (PreparedStatement stmtReverse = conn.prepareStatement(sql)) {
-                    stmtReverse.setString(1, word);
-                    ResultSet rsReverse = stmtReverse.executeQuery();
-                    if (rsReverse.next()) {
-                        translation = rsReverse.getString("russian_word");
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return "Ошибка базы данных: " + e.getMessage();
+        if (translation == null) {
+            return "Перевод не найден";
         }
         
         return translation;
-    }
-
-    private boolean addWordToDictionary(String russian, String english) {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            
-            try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-                 PreparedStatement stmt = conn.prepareStatement(
-                     "INSERT INTO translations (russian_word, english_word) VALUES (?, ?) " +
-                     "ON DUPLICATE KEY UPDATE english_word = VALUES(english_word)")) {
-                
-                stmt.setString(1, russian);
-                stmt.setString(2, english);
-                int rowsAffected = stmt.executeUpdate();
-                return rowsAffected > 0;
-                
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 }
