@@ -21,6 +21,7 @@ public class ExcelViewer {
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setLayout(new BorderLayout());
             
+            // Панель с вкладками для листов
             JTabbedPane tabbedPane = new JTabbedPane();
             
             for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
@@ -30,6 +31,7 @@ public class ExcelViewer {
                 tabbedPane.addTab(sheet.getSheetName(), scrollPane);
             }
             
+            // Кнопка закрытия
             JButton closeButton = new JButton("Закрыть");
             closeButton.addActionListener(e -> dialog.dispose());
             
@@ -52,23 +54,61 @@ public class ExcelViewer {
     }
     
     private static JTable createTableFromSheet(Sheet sheet) {
-        DefaultTableModel model = new DefaultTableModel();
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return true;
+            }
+        };
         
+        // Определяем количество столбцов
+        int columnCount = 0;
         Row headerRow = sheet.getRow(0);
+        
         if (headerRow != null) {
-            for (int i = 0; i < headerRow.getLastCellNum(); i++) {
-                model.addColumn(getCellValue(headerRow.getCell(i)));
+            columnCount = headerRow.getLastCellNum();
+            for (int i = 0; i < columnCount; i++) {
+                Cell cell = headerRow.getCell(i);
+                String header = (cell != null) ? getCellValue(cell) : "Столбец " + (i + 1);
+                model.addColumn(header);
+            }
+        } else {
+            // Если нет заголовков, создаем 10 столбцов по умолчанию
+            columnCount = 10;
+            for (int i = 0; i < columnCount; i++) {
+                model.addColumn("Столбец " + (i + 1));
             }
         }
         
-        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+        // Заполняем данными
+        int startRow = (headerRow != null) ? 1 : 0;
+        for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
             if (row != null) {
-                Object[] rowData = new Object[row.getLastCellNum()];
-                for (int j = 0; j < row.getLastCellNum(); j++) {
-                    rowData[j] = getCellValue(row.getCell(j));
+                Object[] rowData = new Object[columnCount];
+                for (int j = 0; j < columnCount; j++) {
+                    Cell cell = row.getCell(j);
+                    rowData[j] = (cell != null) ? getCellValue(cell) : "";
                 }
                 model.addRow(rowData);
+            } else {
+                // Добавляем пустую строку для видимости
+                Object[] emptyRow = new Object[columnCount];
+                for (int j = 0; j < columnCount; j++) {
+                    emptyRow[j] = "";
+                }
+                model.addRow(emptyRow);
+            }
+        }
+        
+        // Если нет данных, добавляем пустые строки для работы
+        if (model.getRowCount() == 0) {
+            for (int i = 0; i < 20; i++) {
+                Object[] emptyRow = new Object[columnCount];
+                for (int j = 0; j < columnCount; j++) {
+                    emptyRow[j] = "";
+                }
+                model.addRow(emptyRow);
             }
         }
         
@@ -77,9 +117,45 @@ public class ExcelViewer {
         table.setFillsViewportHeight(true);
         table.setRowHeight(25);
         
-        table.setDefaultEditor(Object.class, new DefaultCellEditor(new JTextField()));
+        // Включаем редактирование с поддержкой формул
+        table.setDefaultEditor(Object.class, new FormulaCellEditor());
         
         return table;
+    }
+    
+    // Кастомный редактор ячеек для поддержки формул
+    static class FormulaCellEditor extends DefaultCellEditor {
+        public FormulaCellEditor() {
+            super(new JTextField());
+        }
+        
+        @Override
+        public Object getCellEditorValue() {
+            String value = (String) super.getCellEditorValue();
+            
+            // Проверяем, является ли значение формулой СУММ
+            if (value != null && value.startsWith("=СУММ(") && value.endsWith(")")) {
+                try {
+                    // Извлекаем содержимое скобок
+                    String content = value.substring(6, value.length() - 1);
+                    String[] numbers = content.split(";");
+                    
+                    double sum = 0;
+                    for (String num : numbers) {
+                        sum += Double.parseDouble(num.trim());
+                    }
+                    
+                    // Возвращаем результат вычисления
+                    return sum;
+                    
+                } catch (Exception e) {
+                    // Если ошибка в формуле, возвращаем как есть
+                    return "Ошибка";
+                }
+            }
+            
+            return value;
+        }
     }
     
     private static String getCellValue(Cell cell) {
@@ -102,11 +178,7 @@ public class ExcelViewer {
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
             case FORMULA:
-                try {
-                    return String.valueOf(cell.getNumericCellValue());
-                } catch (Exception e) {
-                    return cell.getStringCellValue();
-                }
+                return "=" + cell.getCellFormula();
             default:
                 return "";
         }
