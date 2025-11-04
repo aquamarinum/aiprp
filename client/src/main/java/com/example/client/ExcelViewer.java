@@ -21,7 +21,6 @@ public class ExcelViewer {
             dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
             dialog.setLayout(new BorderLayout());
             
-            // Панель с вкладками для листов
             JTabbedPane tabbedPane = new JTabbedPane();
             
             for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
@@ -31,7 +30,6 @@ public class ExcelViewer {
                 tabbedPane.addTab(sheet.getSheetName(), scrollPane);
             }
             
-            // Кнопка закрытия
             JButton closeButton = new JButton("Закрыть");
             closeButton.addActionListener(e -> dialog.dispose());
             
@@ -61,7 +59,6 @@ public class ExcelViewer {
             }
         };
         
-        // Определяем количество столбцов
         int columnCount = 0;
         Row headerRow = sheet.getRow(0);
         
@@ -73,14 +70,12 @@ public class ExcelViewer {
                 model.addColumn(header);
             }
         } else {
-            // Если нет заголовков, создаем 10 столбцов по умолчанию
             columnCount = 10;
             for (int i = 0; i < columnCount; i++) {
                 model.addColumn("Столбец " + (i + 1));
             }
         }
         
-        // Заполняем данными
         int startRow = (headerRow != null) ? 1 : 0;
         for (int i = startRow; i <= sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
@@ -92,7 +87,6 @@ public class ExcelViewer {
                 }
                 model.addRow(rowData);
             } else {
-                // Добавляем пустую строку для видимости
                 Object[] emptyRow = new Object[columnCount];
                 for (int j = 0; j < columnCount; j++) {
                     emptyRow[j] = "";
@@ -101,7 +95,6 @@ public class ExcelViewer {
             }
         }
         
-        // Если нет данных, добавляем пустые строки для работы
         if (model.getRowCount() == 0) {
             for (int i = 0; i < 20; i++) {
                 Object[] emptyRow = new Object[columnCount];
@@ -117,13 +110,11 @@ public class ExcelViewer {
         table.setFillsViewportHeight(true);
         table.setRowHeight(25);
         
-        // Включаем редактирование с поддержкой формул
         table.setDefaultEditor(Object.class, new FormulaCellEditor());
         
         return table;
     }
     
-    // Кастомный редактор ячеек для поддержки формул
     static class FormulaCellEditor extends DefaultCellEditor {
         public FormulaCellEditor() {
             super(new JTextField());
@@ -133,10 +124,8 @@ public class ExcelViewer {
         public Object getCellEditorValue() {
             String value = (String) super.getCellEditorValue();
             
-            // Проверяем, является ли значение формулой СУММ
             if (value != null && value.startsWith("=СУММ(") && value.endsWith(")")) {
                 try {
-                    // Извлекаем содержимое скобок
                     String content = value.substring(6, value.length() - 1);
                     String[] numbers = content.split(";");
                     
@@ -145,11 +134,9 @@ public class ExcelViewer {
                         sum += Double.parseDouble(num.trim());
                     }
                     
-                    // Возвращаем результат вычисления
                     return sum;
                     
                 } catch (Exception e) {
-                    // Если ошибка в формуле, возвращаем как есть
                     return "Ошибка";
                 }
             }
@@ -184,3 +171,5 @@ public class ExcelViewer {
         }
     }
 }
+
+/*Расширь функционал клиента. Добавив кнопку, по нажатию на которую будет открываться презентация  в режиме выполнения сразу (я ее заготовил уже и поместил в папку)*/
