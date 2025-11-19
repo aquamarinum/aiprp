@@ -1,17 +1,73 @@
 package com.example;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+import java.awt.*;
+import java.awt.event.*;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+public class Main extends Frame {
+    private Button serverButton;
+    private Button clientButton;
+    private static ServerWindow serverWindow;
+    private static int clientCount = 0;
+    private static final int MAX_CLIENTS = 5;
+
+    public Main() {
+        setTitle("Главное окно - Управление сервером и клиентами");
+        setLayout(new FlowLayout());
+
+        serverButton = new Button("Сервер");
+        clientButton = new Button("Клиент");
+
+        serverButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                openServerWindow();
+            }
+        });
+
+        clientButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                openClientWindow();
+            }
+        });
+
+        add(serverButton);
+        add(clientButton);
+
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent we) {
+                System.exit(0);
+            }
+        });
+
+        setSize(300, 100);
+        setVisible(true);
+    }
+
+    private void openServerWindow() {
+        if (serverWindow == null) {
+            serverWindow = new ServerWindow();
+            serverWindow.addWindowListener(new WindowAdapter() {
+                public void windowClosed(WindowEvent e) {
+                    serverWindow = null;
+                }
+            });
         }
+    }
+
+    private void openClientWindow() {
+        if (clientCount < MAX_CLIENTS) {
+            clientCount++;
+            ClientWindow clientWindow = new ClientWindow(clientCount);
+            clientWindow.addWindowListener(new WindowAdapter() {
+                public void windowClosed(WindowEvent e) {
+                    clientCount--;
+                }
+            });
+        } else {
+            System.out.println("Достигнуто максимальное количество клиентов: " + MAX_CLIENTS);
+        }
+    }
+
+    public static void main(String[] args) {
+        new Main();
     }
 }

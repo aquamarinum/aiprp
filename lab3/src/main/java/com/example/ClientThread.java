@@ -1,51 +1,93 @@
 package com.example;
 
-import java.io.DataInputStream;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
+import java.awt.*;
 
-class ClientThread extends Thread {
-    DataInputStream dis = null;
-    Socket s = null;
+public class ClientThread extends Thread {
+    private TextArea logArea;
+    private int clientId;
+    private boolean running = true;
+    private Socket socket;
+    private BufferedReader dis;
+    private PrintStream ps;
 
-    public ClientThread() {
-        try {
-            s = new Socket("127.0.0.1", 3001);
-            dis = new DataInputStream(s.getInputStream());
-            System.out.println("Клиент создан и подключен к серверу");
-        } catch (Exception e) {
-            System.out.println("Ошибка создания клиента: " + e);
-        }
+    public ClientThread(TextArea logArea, int clientId) {
+        this.logArea = logArea;
+        this.clientId = clientId;
     }
 
     public void run() {
-        System.out.println("Клиент начал работу");
-
-        while (true) {
-            try {
-                sleep(100);
-            } catch (Exception er) {
-                System.out.println("Ошибка sleep: " + er);
-            }
-
-            try {
-                String msg = dis.readLine();
-                if (msg == null) {
-                    System.out.println("Соединение разорвано");
-                    break;
-                }
-                System.out.println("Получено от сервера: " + msg);
-            } catch (Exception e) {
-                System.out.println("Ошибка чтения: " + e);
-                break;
-            }
-        }
+        appendLog("Клиент запущен");
 
         try {
+            socket = new Socket("127.0.0.1", 3001);
+            socket.setSoTimeout(1000);
+            dis = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+            ps = new PrintStream(socket.getOutputStream(), true, "UTF-8");
+            appendLog("Подключен к серверу");
+
+            sendRequest();
+
+            while (running) {
+                try {
+                    String response = dis.readLine();
+                    if (response == null) {
+                        appendLog("Сервер закрыл соединение");
+                        break;
+                    }
+                    appendLog("Получено от сервера: " + response);
+                } catch (SocketTimeoutException e) {
+                    continue;
+                } catch (IOException e) {
+                    if (running) {
+                        appendLog("Ошибка чтения: " + e.getMessage());
+                    }
+                    break;
+                }
+            }
+
+        } catch (IOException e) {
+            appendLog("Ошибка подключения: " + e.getMessage());
+        } finally {
+            closeResources();
+            appendLog("Клиент полностью остановлен");
+        }
+    }
+
+    public void sendRequest() {
+        if (ps != null && running && socket != null && !socket.isClosed()) {
+            try {
+                ps.println("REQUEST");
+                ps.flush();
+                appendLog("Запрос отправлен серверу");
+            } catch (Exception e) {
+                appendLog("Ошибка отправки запроса: " + e.getMessage());
+            }
+        } else {
+            appendLog("Ошибка: нет подключения к серверу");
+        }
+    }
+
+    public void stopClient() {
+        running = false;
+        interrupt();
+        closeResources();
+    }
+
+    private void closeResources() {
+        try {
             if (dis != null) dis.close();
-            if (s != null) s.close();
-            System.out.println("Клиент завершил работу");
-        } catch (Exception e) {
-            System.out.println("Ошибка закрытия: " + e);
+            if (ps != null) ps.close();
+            if (socket != null) socket.close();
+        } catch (IOException e) {
+            appendLog("Ошибка закрытия: " + e.getMessage());
+        }
+    }
+
+    private void appendLog(String message) {
+        if (logArea != null) {
+            logArea.append("[Клиент #" + clientId + "] " + message + "\n");
         }
     }
 }
