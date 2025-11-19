@@ -14,6 +14,7 @@ public class ServerLogic {
     private static final int MAX_CLIENTS = 2;
     private Map<Socket, Long> clientSockets;
     private Timer timer;
+    private final int PORT = 3002;
 
     public ServerLogic(TextArea logArea) {
         this.logArea = logArea;
@@ -22,10 +23,10 @@ public class ServerLogic {
 
     public void startServer() {
         try {
-            server = new ServerSocket(3001);
+            server = new ServerSocket(PORT);
             server.setSoTimeout(100);
             String ipAddress = InetAddress.getLocalHost().getHostAddress();
-            appendLog("Сервер запущен на " + ipAddress + ":3001");
+            appendLog("Сервер запущен на " + ipAddress + ":" + Integer.toString(PORT));
             appendLog("Начальный счет: " + amount);
             appendLog("Максимальное количество клиентов: " + MAX_CLIENTS);
 

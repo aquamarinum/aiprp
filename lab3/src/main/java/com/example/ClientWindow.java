@@ -21,7 +21,7 @@ public class ClientWindow extends Frame {
         Panel connectionPanel = new Panel(new FlowLayout());
         connectionPanel.add(new Label("IP:порт:"));
 
-        connectionField = new TextField("127.0.0.1:3001", 15);
+        connectionField = new TextField("127.0.0.1:3002", 15);
         connectionPanel.add(connectionField);
 
         connectButton = new Button("Подключиться");
