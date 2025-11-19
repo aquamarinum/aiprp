@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.awt.*;
 import java.util.*;
-import java.util.List;
 
 public class ServerLogic {
     private ServerSocket server;
@@ -13,18 +12,18 @@ public class ServerLogic {
     private boolean running = false;
     private int connectedClients = 0;
     private static final int MAX_CLIENTS = 2;
-    private List<Socket> clientSockets;
+    private Map<Socket, Long> clientSockets;
     private Timer timer;
 
     public ServerLogic(TextArea logArea) {
         this.logArea = logArea;
-        this.clientSockets = new ArrayList<>();
+        this.clientSockets = new HashMap<>();
     }
 
     public void startServer() {
         try {
             server = new ServerSocket(3001);
-            server.setSoTimeout(100); // Неблокирующий accept
+            server.setSoTimeout(100);
             String ipAddress = InetAddress.getLocalHost().getHostAddress();
             appendLog("Сервер запущен на " + ipAddress + ":3001");
             appendLog("Начальный счет: " + amount);
@@ -41,6 +40,7 @@ public class ServerLogic {
                     }
                     checkNewConnections();
                     checkClientRequests();
+                    checkDisconnectedClients();
                 }
             }, 0, 100);
 
@@ -60,12 +60,13 @@ public class ServerLogic {
             }
 
             clientSocket.setSoTimeout(100);
-            clientSockets.add(clientSocket);
+            clientSockets.put(clientSocket, System.currentTimeMillis());
             connectedClients++;
             appendLog("Клиент подключен: " + clientSocket.getInetAddress() +
                     " (клиентов: " + connectedClients + "/" + MAX_CLIENTS + ")");
 
         } catch (SocketTimeoutException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             if (running) {
                 appendLog("Ошибка accept: " + e.getMessage());
@@ -74,15 +75,21 @@ public class ServerLogic {
     }
 
     private void checkClientRequests() {
-        Iterator<Socket> iterator = clientSockets.iterator();
+        Iterator<Map.Entry<Socket, Long>> iterator = clientSockets.entrySet().iterator();
         while (iterator.hasNext()) {
-            Socket clientSocket = iterator.next();
+            Map.Entry<Socket, Long> entry = iterator.next();
+            Socket clientSocket = entry.getKey();
+
             try {
-                if (clientSocket.isClosed()) {
+                if (clientSocket.isClosed() || !clientSocket.isConnected()) {
                     iterator.remove();
                     connectedClients--;
+                    appendLog("Клиент отключился (определено по состоянию сокета)");
+                    appendLog("Клиентов: " + connectedClients + "/" + MAX_CLIENTS);
                     continue;
                 }
+
+                clientSocket.sendUrgentData(0xFF);
 
                 InputStream input = clientSocket.getInputStream();
                 if (input.available() > 0) {
@@ -109,16 +116,47 @@ public class ServerLogic {
 
                         appendLog("Отправлено клиенту: " + message);
                     }
+
+                    entry.setValue(System.currentTimeMillis());
                 }
 
             } catch (IOException e) {
                 iterator.remove();
                 connectedClients--;
-                appendLog("Клиент отключился (клиентов: " + connectedClients + "/" + MAX_CLIENTS + ")");
+                appendLog("Клиент отключился (ошибка соединения: " + e.getMessage() + ")");
+                appendLog("Клиентов: " + connectedClients + "/" + MAX_CLIENTS);
                 try {
                     clientSocket.close();
                 } catch (IOException ex) {
                     ex.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void checkDisconnectedClients() {
+        long currentTime = System.currentTimeMillis();
+        long timeout = 5000;
+
+        Iterator<Map.Entry<Socket, Long>> iterator = clientSockets.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Socket, Long> entry = iterator.next();
+            Socket clientSocket = entry.getKey();
+
+            if (currentTime - entry.getValue() > timeout) {
+                try {
+                    clientSocket.sendUrgentData(0xFF);
+                    entry.setValue(currentTime);
+                } catch (IOException e) {
+                    iterator.remove();
+                    connectedClients--;
+                    appendLog("Клиент отключился по таймауту");
+                    appendLog("Клиентов: " + connectedClients + "/" + MAX_CLIENTS);
+                    try {
+                        clientSocket.close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
@@ -131,7 +169,7 @@ public class ServerLogic {
             timer.cancel();
         }
 
-        for (Socket socket : clientSockets) {
+        for (Socket socket : clientSockets.keySet()) {
             try {
                 socket.close();
             } catch (IOException e) {
