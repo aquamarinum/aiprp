@@ -2,20 +2,17 @@ package com.example;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
+import java.net.InetAddress;
 
 public class ServerWindow extends Frame {
     private Button startButton;
     private Button stopButton;
     private TextArea logArea;
-    private ServerThread serverThread;
-    private java.util.List<ServerThread.ClientHandler> clientHandlers;
+    private ServerLogic serverLogic;
 
     public ServerWindow() {
-        setTitle("Окно сервера");
+        setTitle("Сервер");
         setLayout(new BorderLayout());
-
-        clientHandlers = new ArrayList<>();
 
         Panel buttonPanel = new Panel(new FlowLayout());
 
@@ -38,7 +35,7 @@ public class ServerWindow extends Frame {
         buttonPanel.add(startButton);
         buttonPanel.add(stopButton);
 
-        logArea = new TextArea(15, 50);
+        logArea = new TextArea(20, 60);
         logArea.setEditable(false);
 
         add(buttonPanel, BorderLayout.NORTH);
@@ -46,48 +43,35 @@ public class ServerWindow extends Frame {
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent we) {
-                if (serverThread != null) {
-                    stopServer();
+                if (serverLogic != null) {
+                    serverLogic.stopServer();
                 }
-                dispose();
+                System.exit(0);
             }
         });
 
-        setSize(500, 300);
+        setSize(600, 400);
         setVisible(true);
     }
 
     private void startServer() {
-        if (serverThread == null || !serverThread.isAlive()) {
-            serverThread = new ServerThread(logArea, this);
-            serverThread.start();
+        if (serverLogic == null || !serverLogic.isRunning()) {
+            serverLogic = new ServerLogic(logArea);
+            serverLogic.startServer();
             startButton.setEnabled(false);
             stopButton.setEnabled(true);
-            logArea.append("Сервер запущен на порту 3001\n");
         }
     }
 
     private void stopServer() {
-        if (serverThread != null) {
-            serverThread.stopServer();
+        if (serverLogic != null) {
+            serverLogic.stopServer();
             startButton.setEnabled(true);
             stopButton.setEnabled(false);
-            logArea.append("Сервер остановлен\n");
         }
     }
 
-    public void addClientHandler(ServerThread.ClientHandler handler) {
-        clientHandlers.add(handler);
-    }
-
-    public void removeClientHandler(ServerThread.ClientHandler handler) {
-        clientHandlers.remove(handler);
-    }
-
-    public void closeAllClientHandlers() {
-        for (ServerThread.ClientHandler handler : new ArrayList<>(clientHandlers)) {
-            handler.stopClientHandler();
-        }
-        clientHandlers.clear();
+    public static void main(String[] args) {
+        new ServerWindow();
     }
 }

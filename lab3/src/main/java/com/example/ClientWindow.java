@@ -4,36 +4,42 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class ClientWindow extends Frame {
-    private Button startButton;
-    private Button stopButton;
+    private TextField connectionField;
+    private Button connectButton;
+    private Button disconnectButton;
     private Button requestButton;
     private TextArea logArea;
-    private ClientThread clientThread;
+    private ClientLogic clientLogic;
     private int clientId;
+    private static int clientCounter = 0;
 
-    public ClientWindow(int clientId) {
-        this.clientId = clientId;
-        setTitle("Окно клиента #" + clientId);
+    public ClientWindow() {
+        this.clientId = ++clientCounter;
+        setTitle("Клиент #" + clientId);
         setLayout(new BorderLayout());
 
-        Panel buttonPanel = new Panel(new FlowLayout());
+        Panel connectionPanel = new Panel(new FlowLayout());
+        connectionPanel.add(new Label("IP:порт:"));
 
-        startButton = new Button("Запустить клиент");
-        stopButton = new Button("Остановить клиент");
+        connectionField = new TextField("127.0.0.1:3001", 15);
+        connectionPanel.add(connectionField);
+
+        connectButton = new Button("Подключиться");
+        disconnectButton = new Button("Отключиться");
         requestButton = new Button("Запрос к серверу");
 
-        stopButton.setEnabled(false);
+        disconnectButton.setEnabled(false);
         requestButton.setEnabled(false);
 
-        startButton.addActionListener(new ActionListener() {
+        connectButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                startClient();
+                connectToServer();
             }
         });
 
-        stopButton.addActionListener(new ActionListener() {
+        disconnectButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                stopClient();
+                disconnectFromServer();
             }
         });
 
@@ -43,56 +49,72 @@ public class ClientWindow extends Frame {
             }
         });
 
-        buttonPanel.add(startButton);
-        buttonPanel.add(stopButton);
-        buttonPanel.add(requestButton);
+        connectionPanel.add(connectButton);
+        connectionPanel.add(disconnectButton);
+        connectionPanel.add(requestButton);
 
-        logArea = new TextArea(15, 50);
+        logArea = new TextArea(15, 60);
         logArea.setEditable(false);
 
-        add(buttonPanel, BorderLayout.NORTH);
+        add(connectionPanel, BorderLayout.NORTH);
         add(logArea, BorderLayout.CENTER);
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent we) {
-                if (clientThread != null) {
-                    stopClient();
+                if (clientLogic != null) {
+                    clientLogic.stopClient();
                 }
-                dispose();
+                System.exit(0);
             }
         });
 
-        setSize(500, 300);
+        setSize(600, 400);
         setVisible(true);
     }
 
-    private void startClient() {
-        if (clientThread == null || !clientThread.isAlive()) {
-            clientThread = new ClientThread(logArea, clientId);
-            clientThread.start();
-            startButton.setEnabled(false);
-            stopButton.setEnabled(true);
+    private void connectToServer() {
+        if (clientLogic == null || !clientLogic.isRunning()) {
+            String[] parts = connectionField.getText().split(":");
+            if (parts.length != 2) {
+                logArea.append("Ошибка: неверный формат. Используйте IP:порт\n");
+                return;
+            }
+
+            String ip = parts[0];
+            int port;
+            try {
+                port = Integer.parseInt(parts[1]);
+            } catch (NumberFormatException e) {
+                logArea.append("Ошибка: неверный порт\n");
+                return;
+            }
+
+            clientLogic = new ClientLogic(logArea, clientId, ip, port);
+            clientLogic.startClient();
+            connectButton.setEnabled(false);
+            disconnectButton.setEnabled(true);
             requestButton.setEnabled(true);
-            logArea.append("Клиент #" + clientId + " запущен\n");
         }
     }
 
-    private void stopClient() {
-        if (clientThread != null) {
-            clientThread.stopClient();
-            startButton.setEnabled(true);
-            stopButton.setEnabled(false);
+    private void disconnectFromServer() {
+        if (clientLogic != null) {
+            clientLogic.stopClient();
+            connectButton.setEnabled(true);
+            disconnectButton.setEnabled(false);
             requestButton.setEnabled(false);
-            logArea.append("Клиент #" + clientId + " остановлен\n");
         }
     }
 
     private void sendRequest() {
-        if (clientThread != null && clientThread.isAlive()) {
-            clientThread.sendRequest();
-            logArea.append("Клиент #" + clientId + " отправил запрос к серверу\n");
+        if (clientLogic != null && clientLogic.isRunning()) {
+            clientLogic.sendRequest();
         } else {
-            logArea.append("Ошибка: клиент не запущен\n");
+            logArea.append("Ошибка: клиент не подключен\n");
         }
+    }
+
+    public static void main(String[] args) {
+        new ClientWindow();
     }
 }
