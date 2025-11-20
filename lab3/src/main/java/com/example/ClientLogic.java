@@ -29,7 +29,7 @@ public class ClientLogic {
 
         try {
             socket = new Socket(serverIp, serverPort);
-            socket.setSoTimeout(5000); // Увеличиваем таймаут до 5 секунд
+            socket.setSoTimeout(5000);
             dis = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
             ps = new PrintStream(socket.getOutputStream(), true, "UTF-8");
             appendLog("Подключен к серверу " + serverIp + ":" + serverPort);
