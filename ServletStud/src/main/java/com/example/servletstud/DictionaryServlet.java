@@ -68,8 +68,20 @@ public class DictionaryServlet extends HttpServlet {
             statement.setString(1, word);
             
             ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                return resultSet.getString("eng");
+            if (resultSet.next()) {
+                res += resultSet.getString("eng");
+            } else {
+                String sql2 = "SELECT rus FROM Translations WHERE eng= ?";
+                PreparedStatement statement2 = conn.prepareStatement(sql2);
+                statement2.setString(1, word);
+            
+                ResultSet resultSet2 = statement2.executeQuery();
+                
+                if (resultSet2.next()) {
+                    res += resultSet2.getString("rus");
+                }
+                
+                return res;
             }
             conn.close();
         } catch (Exception e) {
