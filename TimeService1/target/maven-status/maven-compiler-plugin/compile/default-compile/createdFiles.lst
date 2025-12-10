@@ -1,3 +1,4 @@
 com\example\timeservice1\resources\JakartaEE10Resource.class
 com\example\service\TimeResource.class
+com\example\service\HTMLResource.class
 com\example\timeservice1\JakartaRestConfiguration.class

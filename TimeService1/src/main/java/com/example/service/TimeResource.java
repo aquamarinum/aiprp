@@ -18,11 +18,12 @@ public class TimeResource {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         String currentTime = LocalTime.now().format(formatter);
         
-        // Создание JSON ответа
-        JsonObject json = Json.createObjectBuilder()
-            .add("time", currentTime)
-            .build();
-            
-        return json.toString();
+        return "{\"time\": \"" + currentTime + "\"}";
+        
+//        JsonObject json = Json.createObjectBuilder()
+//            .add("time", currentTime)
+//            .build();
+//            
+//        return json.toString();
     }
 }
