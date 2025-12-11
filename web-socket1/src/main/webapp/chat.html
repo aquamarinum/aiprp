@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>WebSocket Chat with HTML</title>
+    <style type="text/css">
+      input#chat {
+        width: 410px;
+      }
+
+      .div-1 {
+        background-color: #abebef;
+      }
+
+      #console-container {
+        width: 400px;
+      }
+
+      #console {
+        border: 1px solid #cccccc;
+        border-right-color: #999999;
+        border-bottom-color: #999999;
+        height: 170px;
+        overflow-y: scroll;
+        padding: 5px;
+        width: 100%;
+      }
+
+      #console p {
+        padding: 0;
+        margin: 0;
+      }
+
+      #html-frame {
+        width: 400px;
+        height: 300px;
+        border: none;
+        margin-top: 20px;
+        background: white;
+      }
+    </style>
+    <script type="text/javascript">
+      var Chat = {
+        socket: null,
+
+        connect: function (host) {
+          Console.log("Connecting to: " + host);
+
+          if ("WebSocket" in window) {
+            Chat.socket = new WebSocket(host);
+          } else if ("MozWebSocket" in window) {
+            Chat.socket = new MozWebSocket(host);
+          } else {
+            Console.log("Error: WebSocket is not supported by this browser.");
+            return;
+          }
+
+          Chat.socket.onopen = function () {
+            Console.log("Connected to WebSocket server");
+            Console.log("Available commands: time, html, help");
+
+            document.getElementById("chat").onkeydown = function (event) {
+              if (event.keyCode == 13) {
+                Chat.sendMessage();
+              }
+            };
+          };
+
+          Chat.socket.onclose = function () {
+            document.getElementById("chat").onkeydown = null;
+            Console.log("WebSocket connection closed");
+          };
+
+          Chat.socket.onmessage = function (message) {
+            var data = message.data;
+            console.log(data);
+            if (data.startsWith("<!DOCTYPE html>")) {
+              console.log("HTML");
+              showHtmlInIframe(data);
+            } else {
+              Console.log(data);
+            }
+          };
+
+          Chat.socket.onerror = function (error) {
+            Console.log("WebSocket error: " + error.type);
+          };
+        },
+
+        initialize: function () {
+          var wsUrl = "ws://localhost:35886/web-socket1/websocket/chat";
+          Chat.connect(wsUrl);
+        },
+
+        sendMessage: function () {
+          var messageInput = document.getElementById("chat");
+          var message = messageInput.value;
+
+          if (message && message.trim() !== "") {
+            if (Chat.socket && Chat.socket.readyState === WebSocket.OPEN) {
+              Chat.socket.send(message);
+              messageInput.value = "";
+              messageInput.focus();
+            } else {
+              Console.log("Error: Not connected to server");
+            }
+          }
+        },
+      };
+
+      var Console = {
+        log: function (message) {
+          var consoleDiv = document.getElementById("console");
+          var paragraph = document.createElement("p");
+          paragraph.style.wordWrap = "break-word";
+          paragraph.textContent = message;
+          consoleDiv.appendChild(paragraph);
+
+          while (consoleDiv.childNodes.length > 25) {
+            consoleDiv.removeChild(consoleDiv.firstChild);
+          }
+
+          consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        },
+      };
+
+      function showHtmlInIframe(htmlContent) {
+        var iframe = document.getElementById("html-frame");
+        var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(htmlContent);
+        iframeDoc.close();
+        Console.log("HTML content loaded in iframe");
+      }
+
+      function loadExternalHtml() {
+        var iframe = document.getElementById("html-frame");
+        iframe.src = "http://localhost:35886/TimeService1/api/html";
+        Console.log("Loading external HTML from TimeService");
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var noscripts = document.getElementsByClassName("noscript");
+        for (var i = 0; i < noscripts.length; i++) {
+          if (noscripts[i].parentNode) {
+            noscripts[i].parentNode.removeChild(noscripts[i]);
+          }
+        }
+
+        Chat.initialize();
+      });
+    </script>
+  </head>
+  <body>
+    <div class="noscript">
+      <h2 style="color: #ff0000">
+        Seems your browser doesn't support Javascript! Websockets rely on
+        Javascript being enabled. Please enable Javascript and reload this page!
+      </h2>
+    </div>
+    <div>
+      <p>
+        <input
+          type="text"
+          size="80"
+          id="chat"
+          placeholder="Type message... (try: time, html, help)"
+          autocomplete="off"
+        />
+      </p>
+      <div id="console-container">
+        <div id="console" class="div-1"></div>
+      </div>
+
+      <div>
+        <iframe id="html-frame"></iframe>
+      </div>
+    </div>
+  </body>
+</html>
